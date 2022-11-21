@@ -3,12 +3,15 @@ package com.kakalog.service;
 import com.kakalog.domain.Post;
 import com.kakalog.repository.PostRepository;
 import com.kakalog.request.PostCreate;
+import com.kakalog.response.PostResponse;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -53,17 +56,46 @@ class PostServiceTest {
                 .title("foo")
                 .content("bar")
                 .build();
+        // 클라이언트 요구사항
+        // json 응답에서 title 값 길이를 최대 10글자로 해주세요.
 
         postRepository.save(requestPost);
         //when
-        Post post = postService.get(requestPost.getId());
+        PostResponse response = postService.get(requestPost.getId());
         //then
-        assertNotNull(post);
+        assertNotNull(response);
         assertEquals(1L, postRepository.count());
-        assertEquals("foo", post.getTitle());
-        assertEquals("bar", post.getContent());
+        assertEquals("foo", response.getTitle());
+        assertEquals("bar", response.getContent());
     }
 
+    @Test
+    @DisplayName("글 여러개 조회")
+    void test3(){
+        //given
+
+        // 클라이언트 요구사항
+        // json 응답에서 title 값 길이를 최대 10글자로 해주세요.
+
+        postRepository.saveAll(List.of(
+                Post.builder()
+                        .title("foo1")
+                        .content("bar1")
+                        .build(),
+                Post.builder()
+                        .title("foo2")
+                        .content("bar2")
+                        .build()
+        ));
+        // 클라이언트 요구사항
+        // json 응답에서 title 값 길이를 최대 10글자로 해주세요.
+
+        //when
+        List<PostResponse> posts = postService.getList();
+
+        //then
+        assertEquals(2L, posts.size());
+    }
 
 }
 
