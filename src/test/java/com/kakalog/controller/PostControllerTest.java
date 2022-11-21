@@ -26,6 +26,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class PostControllerTest {
 
     @Autowired
+    private ObjectMapper objectMapper;
+
+    @Autowired
     private MockMvc mockMvc;
 
     @Autowired
@@ -41,9 +44,11 @@ class PostControllerTest {
     @DisplayName("/posts 요청시 Hello World 를 출력한다.")
     void test() throws Exception {
         //given
-        PostCreate request = new PostCreate("제목입니다.", "내용입니다.");
+        PostCreate request = PostCreate.builder()
+                .title("제목입니다.")
+                .content("내용입니다.")
+                .build();
         //json 프로세싱 해주는 라이브러리 ObjectMapper
-        ObjectMapper objectMapper = new ObjectMapper();
         //json 형태로 가공하기
         String json = objectMapper.writeValueAsString(request);
 
@@ -53,17 +58,24 @@ class PostControllerTest {
                         .content(json)
                 )
                 .andExpect(status().isOk())
-                .andExpect(content().string("{}"))
+                .andExpect(content().string(""))
                 .andDo(print());
     }
 
     @Test
     @DisplayName("/posts 요청시 title 값은 필수다.")
     void test2() throws Exception {
+        //given
+        PostCreate request = PostCreate.builder()
+                .content("내용입니다.")
+                .build();
+
+        String json = objectMapper.writeValueAsString(request);
+
         // expected
         mockMvc.perform(post("/posts")
                         .contentType(APPLICATION_JSON)
-                        .content("{\"title\": null, \"content\": \"내용입니다.\"}")
+                        .content(json)
                 )
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("400"))
@@ -75,10 +87,20 @@ class PostControllerTest {
     @Test
     @DisplayName("/posts 요청시 DB에 값이 저장된다.")
     void test3() throws Exception {
+        //given
+        PostCreate request = PostCreate.builder()
+                .title("제목입니다.")
+                .content("내용입니다.")
+                .build();
+        //json 프로세싱 해주는 라이브러리 ObjectMapper
+        //json 형태로 가공하기
+        String json = objectMapper.writeValueAsString(request);
+
+
         // when
         mockMvc.perform(post("/posts")
                         .contentType(APPLICATION_JSON)
-                        .content("{\"title\": \"제목입니다.\", \"content\": \"내용입니다.\"}")
+                        .content(json)
                 )
                 .andExpect(status().isOk())
                 .andDo(print());
