@@ -1,5 +1,6 @@
 package com.kakalog.request;
 
+import com.kakalog.exception.InvalidRequest;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
@@ -22,6 +23,12 @@ public class PostCreate {
     public PostCreate(String title, String content){
         this.title = title;
         this.content = content;
+    }
+
+    public void validate() {
+        if(title.contains("바보")){
+            throw new InvalidRequest();
+        }
     }
 
 //    lombok Builder 패턴

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kakalog.domain.Post;
 import com.kakalog.repository.PostRepository;
 import com.kakalog.request.PostCreate;
+import com.kakalog.request.PostEdit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -19,8 +20,7 @@ import java.util.stream.IntStream;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -138,7 +138,7 @@ class PostControllerTest {
     @DisplayName("글 여러개 조회")
     void test5() throws Exception {
         //given
-        List<Post> requestPosts = IntStream.range(1, 31)
+        List<Post> requestPosts = IntStream.range(0, 20)
                 .mapToObj(i -> Post.builder()
                         .title("카카제목 " + i)
                         .content("글내용 " + i)
@@ -147,14 +147,116 @@ class PostControllerTest {
         postRepository.saveAll(requestPosts);
 
         //expected
-        mockMvc.perform(get("/posts?page=1&sort=id,desc")
+        mockMvc.perform(get("/posts?page=1&size=10")
                         .contentType(APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()",is(5)))
-                .andExpect(jsonPath("$[0].id").value(30))
-                .andExpect(jsonPath("$[0].title").value("카카제목 30"))
-                .andExpect(jsonPath("$[0].content").value("글내용 30"))
+                .andExpect(jsonPath("$.length()",is(10)))
+                .andExpect(jsonPath("$[0].title").value("카카제목 19"))
+                .andExpect(jsonPath("$[0].content").value("글내용 19"))
+                .andDo(print());
+    }
+    @Test
+    @DisplayName("페이지를 0으로 요청하면 첫 페이지를 가져온다")
+    void test6() throws Exception {
+        //given
+        List<Post> requestPosts = IntStream.range(0, 20)
+                .mapToObj(i -> Post.builder()
+                        .title("카카제목 " + i)
+                        .content("글내용 " + i)
+                        .build())
+                .collect(Collectors.toList());
+        postRepository.saveAll(requestPosts);
+
+        //expected
+        mockMvc.perform(get("/posts?page=0&size=10")
+                        .contentType(APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()",is(10)))
+                .andExpect(jsonPath("$[0].title").value("카카제목 19"))
+                .andExpect(jsonPath("$[0].content").value("글내용 19"))
                 .andDo(print());
     }
 
+    @Test
+    @DisplayName("글제목 수정")
+    void test7() throws Exception {
+        //given
+        Post post = Post.builder()
+                .title("카카제목")
+                .content("글내용")
+                .build();
+        postRepository.save(post);
+
+        PostEdit postEdit = PostEdit.builder()
+                .title("카카수정")
+                .content("글내용")
+                .build();
+
+        //expected
+        mockMvc.perform(patch("/posts/{postId}", post.getId())
+                        .contentType(APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(postEdit)))
+                .andExpect(status().isOk())
+                .andDo(print());
+    }
+    @Test
+    @DisplayName("게시글 삭제")
+    void test8() throws Exception {
+        //given
+        Post post = Post.builder()
+                .title("카카제목")
+                .content("글내용")
+                .build();
+        postRepository.save(post);
+
+        //expected
+        mockMvc.perform(delete("/posts/{postId}", post.getId())
+                .contentType(APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andDo(print());
+    }
+    @Test
+    @DisplayName("존재하지 않는 게시글 조회")
+    void test9() throws Exception{
+        //expected
+        mockMvc.perform(delete("/posts/{postId}", 1L)
+                        .contentType(APPLICATION_JSON))
+                .andExpect(status().isNotFound())
+                .andDo(print());
+    }
+    @Test
+    @DisplayName("존재하지 않는 게시글 수정")
+    void test10() throws Exception{
+        //given
+        PostEdit postEdit = PostEdit.builder()
+                .title("카카수정")
+                .content("글내용")
+                .build();
+
+        //expected
+        mockMvc.perform(patch("/posts/{postId}", 1L)
+                        .contentType(APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(postEdit)))
+                .andExpect(status().isNotFound())
+                .andDo(print());
+    }
+    @Test
+    @DisplayName("게시글 작성시 제목에 '바보'는 포함될 수 없다.")
+    void test11() throws Exception {
+        //given
+        PostCreate request = PostCreate.builder()
+                .title("나는 바보입니다.")
+                .content("내용입니다.")
+                .build();
+        String json = objectMapper.writeValueAsString(request);
+
+
+        // when
+        mockMvc.perform(post("/posts")
+                        .contentType(APPLICATION_JSON)
+                        .content(json)
+                )
+                .andExpect(status().isBadRequest())
+                .andDo(print());
+    }
 }
