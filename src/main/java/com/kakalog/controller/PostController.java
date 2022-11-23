@@ -1,6 +1,5 @@
 package com.kakalog.controller;
 
-import com.kakalog.exception.InvalidRequest;
 import com.kakalog.request.PostCreate;
 import com.kakalog.request.PostEdit;
 import com.kakalog.request.PostSearch;
@@ -37,10 +36,12 @@ public class PostController {
     public List<PostResponse> getList(@ModelAttribute PostSearch postSearch){
         return postService.getList(postSearch);
     }
+
     @PatchMapping("posts/{postId}")
     public void edit(@PathVariable Long postId, @RequestBody @Valid PostEdit request){
         postService.edit(postId, request);
     }
+
     @DeleteMapping("/posts/{postId}")
     public void delete(@PathVariable Long postId){
         postService.delete(postId);
